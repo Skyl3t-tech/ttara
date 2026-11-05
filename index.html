@@ -3,149 +3,197 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b1668">
+<meta name="theme-color" content="#1e1214">
 <meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="따라 불러">
 <title>따라 불러</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;600&family=Jua&family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@500;700&display=swap">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
-/* Layout: a noraebang monitor. Cobalt screen, lyrics wipe yellow as they are sung, score screen at the end. */
+/* Layout: a warm listening room. Video and controls stay put; lyrics scroll past a centered current line. */
 :root{
   color-scheme:dark;
-  --screen:#0b1668; --panel:#14218a; --edge:#3142b8; --ink:#f7f8ff; --dim:#b9c1f2;
-  --wipe:#ffe14a; --hot:#ff7ab8; --good:#4fe3b0; --bad:#ff8f8f; --shadow:#050a3a;
-  --display:"Black Han Sans","IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
-  --body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --screen:#1e1214; --panel:#2b1a1c; --raised:#3a2425; --edge:#4e3331; --ink:#fbf1e4; --dim:#cdb6a6;
+  --wipe:#ffb74d; --hot:#ff8a65; --good:#a8d8a0; --bad:#ffa494; --on-accent:#2a1508;
+  --ui:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --display:"Gowun Batang","Noto Serif KR","Apple SD Gothic Neo",serif;
+  --lyric:"Noto Serif KR","Apple SD Gothic Neo","Malgun Gothic",serif;
+  --r:14px;
 }
 *{box-sizing:border-box}
-html,body{background:var(--screen);color:var(--ink)}
-body{font:16px/1.55 var(--body);-webkit-text-size-adjust:100%}
+html,body{margin:0;background:var(--screen);color:var(--ink)}
+body{font:16px/1.55 var(--ui);-webkit-text-size-adjust:100%}
+img{max-width:100%}
+[hidden]{display:none!important}
 button,select,input,textarea{font:inherit;color:inherit}
 button{cursor:pointer;background:none;border:0;padding:0}
+a{color:var(--wipe)}
 :focus-visible{outline:2px solid var(--wipe);outline-offset:2px}
 .app{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 96px;display:flex;flex-direction:column;gap:20px}
-h1,h2,h3{font-family:var(--display);font-weight:400;margin:0;text-wrap:balance;line-height:1.2}
-h1{font-size:30px}h2{font-size:22px}h3{font-size:18px}
+h1,h2,h3{font-family:var(--display);font-weight:700;margin:0;text-wrap:balance;line-height:1.25}
+h1{font-size:28px}h2{font-size:21px}h3{font-size:18px}
 p{margin:0}
 .muted{color:var(--dim);font-size:14px}
 .top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.btn{padding:10px 16px;border:1.5px solid var(--edge);border-radius:6px;background:var(--panel);min-height:44px}
-.btn.primary{background:var(--wipe);color:#141a5e;border-color:var(--wipe);font-weight:600}
-.btn[aria-pressed="true"]{background:var(--ink);color:var(--screen);border-color:var(--ink)}
+.btn{padding:9px 16px;border-radius:999px;background:var(--raised);min-height:42px;transition:background .15s,color .15s}
+.btn:hover{background:var(--edge)}
+.btn.primary{background:var(--wipe);color:var(--on-accent);font-weight:600}
+.btn.primary:hover{background:#ffc66e}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--on-accent)}
 .btn:disabled{opacity:.5;cursor:default}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.link{color:var(--wipe);text-decoration:underline;text-underline-offset:3px}
+.link{color:var(--wipe);font-size:14px}
+label.field{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--dim)}
+input[type=text],textarea,select{background:var(--raised);border:0;border-radius:10px;padding:10px 12px;color:var(--ink);width:100%;min-height:42px}
+textarea{min-height:200px;font-size:16px;line-height:1.6}
+select{width:auto;border-radius:999px;padding:6px 10px;min-height:36px}
+.block{display:flex;flex-direction:column;gap:10px;padding-top:16px}
 
-/* Karaoke text */
-.kara{font-family:var(--display);color:var(--ink);text-shadow:2px 2px 0 var(--shadow),-1px -1px 0 var(--shadow),1px -1px 0 var(--shadow),-1px 1px 0 var(--shadow);letter-spacing:.01em}
-.kara .sy{transition:color .1s linear}
-.kara .sy.on{color:var(--wipe)}
-.hero{padding:22px 16px;border:2px solid var(--edge);border-radius:6px;background:var(--panel);text-align:center;display:flex;flex-direction:column;gap:6px}
-.hero .kara{font-size:clamp(26px,7.5vw,40px)}
-@media (prefers-reduced-motion:no-preference){
-  .hero .sy{animation:fill 7s linear infinite;animation-delay:calc(var(--n)*.3s)}
-}
+/* Lyric type */
+.kara{font-family:var(--lyric);font-weight:var(--lyric-w,700);color:var(--ink)}
+.sy{transition:color .1s linear}
+.sy.on{color:var(--wipe)}
+.hero{padding:26px 16px;border-radius:var(--r);background:linear-gradient(135deg,var(--panel),var(--raised));text-align:center;display:flex;flex-direction:column;gap:6px}
+.hero .kara{font-size:clamp(25px,7vw,38px)}
+@media (prefers-reduced-motion:no-preference){.hero .sy{animation:fill 7s linear infinite;animation-delay:calc(var(--n)*.3s)}}
 @keyframes fill{0%{color:var(--ink)}3%,72%{color:var(--wipe)}80%,100%{color:var(--ink)}}
 
 /* Song list */
-.songs{display:flex;flex-direction:column}
-.song{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:14px 0;border-top:1px solid var(--edge);text-align:left;width:100%}
-.song:last-child{border-bottom:1px solid var(--edge)}
-.song h3{font-size:21px;min-width:0}
+.songs{display:flex;flex-direction:column;gap:8px}
+.song{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:14px 16px;background:var(--panel);border-radius:var(--r);text-align:left;width:100%;transition:background .15s}
+.song:hover{background:var(--raised)}
+.song h3{font-size:20px;min-width:0}
 .song .meta{grid-column:1;min-width:0;overflow-wrap:anywhere}
-.song .go{grid-row:1/3;grid-column:2;align-self:center;color:var(--wipe);font-size:22px}
+.song .go{grid-row:1/3;grid-column:2;align-self:center;color:var(--wipe);font-size:20px}
 
-/* Stage */
-.tabs{display:flex;gap:4px;border-bottom:2px solid var(--edge)}
-.tabs button{padding:10px 14px;margin-bottom:-2px;border-bottom:3px solid transparent;color:var(--dim);min-height:44px}
-.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--wipe);font-weight:600}
-.stage{padding:24px 14px;background:var(--panel);border:2px solid var(--edge);border-radius:6px;text-align:center;display:flex;flex-direction:column;gap:14px;min-width:0}
-.stage .count{font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums}
-.stage .kara.now{font-size:clamp(24px,6.6vw,38px);line-height:1.45}
-.stage .w{display:inline;border-radius:4px;padding:0 2px;font:inherit;color:inherit;text-shadow:inherit;letter-spacing:inherit}
-.stage .w:hover{background:rgba(255,255,255,.1)}
-.stage .next{font-family:var(--display);font-size:clamp(15px,4vw,20px);color:var(--dim)}
-.turn{height:6px;border-radius:3px;background:var(--edge);overflow:hidden}
-.turn i{display:block;height:100%;width:0;background:var(--hot)}
-.turnlabel{font-size:14px;color:var(--hot);font-weight:600;min-height:21px}
-.say{display:flex;flex-direction:column;gap:6px;padding-top:12px;border-top:1px dashed var(--edge)}
-.say .surf{font-size:21px;font-weight:600}
-.say .surf b{color:var(--hot);font-weight:600}
-.say .rom{color:var(--dim);font-size:15px}
-.rules{display:flex;flex-direction:column;gap:4px;text-align:left;font-size:14px;color:var(--dim)}
-.rules b{color:var(--ink);font-weight:600}
-.en{color:var(--ink);font-size:16px}
-.ctrl{display:flex;flex-direction:column;gap:10px}
+/* Song header */
+.tabs{display:flex;gap:4px;background:var(--panel);padding:4px;border-radius:999px;width:fit-content;max-width:100%}
+.tabs button{padding:6px 14px;color:var(--dim);border-radius:999px;min-height:36px;font-size:15px}
+.tabs button[aria-selected="true"]{color:var(--on-accent);background:var(--wipe);font-weight:600}
+.songhead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.songhead .ti{min-width:0;display:flex;flex-direction:column}
+.songhead h1{font-size:22px;overflow-wrap:anywhere}
+
+/* Sing screen: fills the window; only the lyric list scrolls */
+.app.singmode{max-width:1180px;height:100vh;height:100dvh;overflow:hidden;gap:10px;padding-block:10px calc(62px + env(safe-area-inset-bottom,0px))}
+#body{min-width:0}
+.singmode #body{flex:1;min-height:0}
+.sing{height:100%;display:flex;flex-direction:column;gap:10px;min-height:0}
+.side{display:flex;flex-direction:column;gap:10px;flex:none;min-width:0}
+.video{aspect-ratio:16/9;width:100%;max-width:100%;background:#000;border-radius:var(--r);overflow:hidden}
+.video iframe,.video #ythost{display:block;width:100%;height:100%;border:0}
 .play{display:grid;grid-template-columns:1fr 2fr 1fr;gap:8px}
-.sheetlist{display:flex;flex-direction:column}
-.sheetlist button{display:block;width:100%;padding:9px 4px;text-align:left;border-top:1px solid var(--edge);color:var(--dim);overflow-wrap:anywhere}
-.sheetlist button[aria-current="true"]{color:var(--wipe);font-weight:600}
-label.field{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--dim)}
-input[type=text],textarea,select{background:var(--panel);border:1.5px solid var(--edge);border-radius:6px;padding:10px;color:var(--ink);width:100%;min-height:44px}
-textarea{min-height:200px;font-size:16px;line-height:1.6}
-select{width:auto}
-.block{display:flex;flex-direction:column;gap:10px;padding-top:16px;border-top:1px solid var(--edge)}
+.pills{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.pills .btn{min-height:36px;padding:5px 12px;font-size:14px}
+.opt{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--dim)}
+.opt select{font-size:14px}
+.delay{display:flex;align-items:center;gap:4px;background:var(--raised);border-radius:999px;padding:2px 4px 2px 10px;font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums}
+.delay button{width:32px;height:32px;border-radius:50%;background:var(--edge);color:var(--ink);font-size:17px;line-height:1}
+.turnwrap{display:flex;align-items:center;gap:8px}
+.turn{flex:1;height:5px;border-radius:3px;background:var(--raised);overflow:hidden}
+.turn i{display:block;height:100%;width:0;background:var(--hot)}
+#turnlabel{font-size:13px;color:var(--hot);font-weight:600;min-width:64px;text-align:right}
+.lyrics{position:relative;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;background:var(--panel);border-radius:var(--r);padding:8px}
+.nolist{overflow:visible}
+.line{padding:9px 12px;border-radius:10px;cursor:pointer;display:flex;flex-direction:column;gap:2px;color:var(--dim);transition:background .15s}
+.line:hover{background:var(--raised)}
+.line .kr{font-family:var(--lyric);font-size:17px;overflow-wrap:anywhere}
+.line .tr{font-size:14px;color:var(--dim);overflow-wrap:anywhere}
+.notr .tr{display:none}
+.line.active{background:var(--raised);color:var(--ink)}
+.line.active .kr{font-size:clamp(21px,5.6vw,27px);font-weight:var(--lyric-w,700);line-height:1.45}
+.line.active .tr{color:var(--ink);font-size:15px}
+.w{font:inherit;color:inherit;border-radius:4px;display:inline}
+.line.active .w:hover{background:rgba(255,183,77,.18)}
+.detail{display:flex;flex-direction:column;gap:4px;padding-top:6px;margin-top:6px;border-top:1px solid var(--edge)}
+.detail .surf{font-size:19px;font-weight:600}
+.detail .surf b{color:var(--hot);font-weight:600}
+.detail .rom{color:var(--dim);font-size:14px}
+.rules{display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--dim)}
+.rules b{color:var(--ink);font-weight:600}
+@media (min-width:900px){
+  .sing{display:grid;grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:16px}
+  .lyrics{height:100%}
+  .line{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;align-items:center}
+  .notr .line{grid-template-columns:minmax(0,1fr)}
+  .detail{grid-column:1/-1}
+}
 
 /* Words */
-.wlist{display:flex;flex-direction:column}
-.wrow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:10px 0;border-top:1px solid var(--edge)}
+.wlist{display:flex;flex-direction:column;gap:2px}
+.wrow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 12px;background:var(--panel);border-radius:10px}
 .wrow>button:first-child{text-align:left;min-width:0}
-.wrow .ko{font-size:18px;font-weight:600}
+.wrow .ko{font-size:18px;font-weight:600;font-family:var(--lyric)}
 .wrow .gl{display:block;color:var(--dim);font-size:14px;overflow-wrap:anywhere}
-.add{min-width:64px;min-height:40px;padding:6px 10px;border:1.5px solid var(--edge);border-radius:6px;font-size:14px}
-.add[disabled]{color:var(--good);border-color:transparent;cursor:default}
+.add{min-width:60px;min-height:36px;padding:4px 10px;border-radius:999px;background:var(--raised);font-size:14px}
+.add[disabled]{color:var(--good);background:none;cursor:default}
 
 /* Review and gap fill */
-.card{padding:26px 16px;background:var(--panel);border:2px solid var(--edge);border-radius:6px;text-align:center;display:flex;flex-direction:column;gap:12px;min-width:0}
-.card .big{font-family:var(--display);font-size:38px;line-height:1.2;overflow-wrap:anywhere}
-.card .ctx{color:var(--dim);overflow-wrap:anywhere}
-.card .ctx mark{background:none;color:var(--wipe);font-weight:600}
+#clipdock{max-width:720px;margin:12px auto 0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.card{padding:26px 16px;background:var(--panel);border-radius:var(--r);text-align:center;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card .big{font-family:var(--lyric);font-weight:700;font-size:36px;line-height:1.25;overflow-wrap:anywhere}
+.card .ctx{color:var(--dim);overflow-wrap:anywhere;font-family:var(--lyric)}
+.card .ctx mark{background:none;color:var(--wipe);font-weight:700}
 .rate{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.rate button{padding:8px 2px;border:1.5px solid var(--edge);border-radius:6px;background:var(--panel);min-height:56px;font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.rate button{padding:8px 2px;border-radius:12px;background:var(--raised);min-height:56px;font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.rate button:hover{background:var(--edge)}
 .rate small{color:var(--dim);font-variant-numeric:tabular-nums}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
 .stats div{display:flex;flex-direction:column}
-.stats b{font-family:var(--display);font-weight:400;font-size:26px;font-variant-numeric:tabular-nums}
+.stats b{font-family:var(--display);font-weight:700;font-size:25px;font-variant-numeric:tabular-nums}
 .stats span{font-size:13px;color:var(--dim)}
 .opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.opts button{padding:12px 6px;border:1.5px solid var(--edge);border-radius:6px;background:var(--panel);font-size:18px;min-height:52px;overflow-wrap:anywhere}
-.opts button.ok{border-color:var(--good);color:var(--good)}
-.opts button.no{border-color:var(--bad);color:var(--bad)}
+.opts button{padding:12px 6px;border-radius:12px;background:var(--raised);font-size:18px;min-height:52px;overflow-wrap:anywhere;font-family:var(--lyric)}
+.opts button.ok{color:var(--good);box-shadow:inset 0 0 0 2px var(--good)}
+.opts button.no{color:var(--bad);box-shadow:inset 0 0 0 2px var(--bad)}
 .blank{color:var(--wipe);border-bottom:3px solid var(--wipe);padding:0 10px}
-.score{font-family:var(--display);font-size:92px;line-height:1;color:var(--wipe);text-shadow:3px 3px 0 var(--shadow);font-variant-numeric:tabular-nums}
-.score small{font-size:34px}
+.score{font-family:var(--display);font-weight:700;font-size:88px;line-height:1;color:var(--wipe);font-variant-numeric:tabular-nums}
+.score small{font-size:32px}
 
-/* Chrome */
-nav.bar{position:fixed;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:repeat(3,1fr);background:var(--shadow);border-top:2px solid var(--edge);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px))}
-nav.bar button{padding:13px 4px;color:var(--dim);font-size:15px;min-height:52px}
-nav.bar button[aria-current="true"]{color:var(--wipe);font-weight:600}
-.badge{display:inline-block;min-width:20px;padding:0 5px;margin-left:4px;border-radius:10px;background:var(--hot);color:#141a5e;font-size:13px;font-weight:600}
-#veil{position:fixed;inset:0;background:rgba(5,10,58,.7);z-index:9}
-#sheet{position:fixed;left:0;right:0;bottom:0;z-index:10;max-height:85%;overflow:auto;background:var(--panel);border-top:3px solid var(--wipe);padding-block:18px calc(18px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-#sheet .in{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
-#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(68px + env(safe-area-inset-bottom,0px));z-index:12;width:min(92%,480px);padding:10px 14px;background:var(--ink);color:var(--screen);border-radius:6px;font-size:14px}
-
-/* YouTube additions */
-.video{position:sticky;top:env(safe-area-inset-top,0px);z-index:4;aspect-ratio:16/9;width:100%;max-width:100%;background:#000;border:2px solid var(--edge);border-radius:6px;overflow:hidden}
-.video iframe,.video #ythost{display:block;width:100%;height:100%;border:0}
-.vids{display:flex;flex-direction:column}
-.vid{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--edge);text-align:left;width:100%}
-.vid.static{border:0;padding:0}
-.vid img{width:120px;aspect-ratio:16/9;object-fit:cover;border-radius:4px;display:block}
+/* Find */
+.vids{display:flex;flex-direction:column;gap:4px}
+.vid{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:center;padding:8px;border-radius:12px;text-align:left;width:100%}
+button.vid:hover{background:var(--panel)}
+.vid.static{padding:0}
+.vid img{width:120px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;display:block}
 .vt{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}
 .vt b{font-weight:600}
 #found{display:flex;flex-direction:column;gap:10px}
-#markbar{position:fixed;left:0;right:0;bottom:0;z-index:8;background:var(--panel);border-top:3px solid var(--wipe);padding-block:14px calc(14px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-#markbar .in{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
-.markline{font-family:var(--display);font-size:22px;overflow-wrap:anywhere}
+.sheetlist{display:flex;flex-direction:column;gap:2px}
+.sheetlist button{display:block;width:100%;padding:10px 12px;text-align:left;border-radius:10px;background:var(--panel);color:var(--dim);overflow-wrap:anywhere}
+.sheetlist button:hover{color:var(--ink)}
 
-[hidden]{display:none!important}
-html,body{margin:0}
-img{max-width:100%}
+/* Settings */
+.fonts{display:flex;flex-direction:column;gap:6px}
+.fonts button{display:flex;flex-direction:column;gap:2px;padding:10px 14px;border-radius:12px;background:var(--panel);text-align:left}
+.fonts button[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--wipe)}
+.fonts .sample{font-size:22px;overflow-wrap:anywhere}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px;color:var(--dim)}
+.keys kbd{font:inherit;color:var(--ink)}
+
+/* Chrome */
+nav.bar{position:fixed;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:repeat(3,1fr);background:rgba(30,18,20,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--edge);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+nav.bar button{padding:12px 4px;color:var(--dim);font-size:15px;min-height:50px}
+nav.bar button[aria-current="true"]{color:var(--wipe);font-weight:600}
+.badge{display:inline-block;min-width:20px;padding:0 5px;margin-left:4px;border-radius:10px;background:var(--hot);color:var(--on-accent);font-size:13px;font-weight:600}
+#veil{position:fixed;inset:0;background:rgba(15,8,9,.6);z-index:9}
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:10;max-height:85%;overflow:auto;background:var(--panel);border-radius:20px 20px 0 0;padding-block:20px calc(20px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#sheet .in{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:12;width:min(92%,480px);padding:10px 14px;background:var(--ink);color:var(--on-accent);border-radius:12px;font-size:14px}
+#markbar{position:fixed;left:0;right:0;bottom:0;z-index:8;background:var(--panel);border-radius:20px 20px 0 0;padding-block:14px calc(14px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#markbar .in{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
+.markline{font-family:var(--lyric);font-weight:700;font-size:22px;overflow-wrap:anywhere}
 </style>
 </head>
 <body>
+<div id="clipdock" hidden><div class="video"><div id="cliphost"></div></div></div>
 <div class="app" id="app"></div>
 <nav class="bar" id="bar" aria-label="Main"></nav>
 <div id="markbar" hidden></div>
@@ -332,7 +380,7 @@ const hasKo=s=>/[가-힣]/.test(s);
 const KEY='ttara-gh-v1';
 let P={deck:{},streak:0,lastDay:'',done:0,goal:20,att:{},deleted:[],updated:0};
 let custom={};
-let prefs={sounds:false,meaning:false,mode:'one',shadow:false,speed:.75,voice:'video',clientId:'',connected:false};
+let prefs={sounds:false,meaning:false,mode:'one',shadow:false,speed:.75,voice:'video',font:'noto',clientId:'',connected:false};
 let view={v:'home',song:null,tab:'sing',line:0};
 let auth=null,driveId=null,syncState='local';
 
@@ -470,8 +518,8 @@ function cleanTitle(t){
 }
 
 /* YouTube player */
-let yt=null,ytReady=false,ytLoading=false,ytFor=null;
-window.onYouTubeIframeAPIReady=()=>{ytReady=true;mountPlayer()};
+let yt=null,ytReady=false,ytLoading=false,ytFor=null,pendingClip=null;
+window.onYouTubeIframeAPIReady=()=>{ytReady=true;mountPlayer();if(pendingClip){const c=pendingClip;pendingClip=null;playClip(c)}};
 function loadYT(){if(ytLoading)return;ytLoading=true;const s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';document.head.append(s)}
 function mountPlayer(){
   const a=att(view.song),host=$('#ythost');
@@ -484,19 +532,89 @@ function mountPlayer(){
       const blocked=e.data===101||e.data===150;
       toast(blocked?'This video\'s owner blocks playback in other apps. Try a lyric video or another upload.':'YouTube could not play this video.');stopAll()}}});
 }
-function killPlayer(){if(yt){try{yt.destroy()}catch(e){}yt=null;ytFor=null}}
-const ytOK=()=>yt&&typeof yt.seekTo==='function'&&ytFor===view.song;
-function segment(id,i,song){
-  const a=att(id);
-  if(!a||!a.times||a.times[i]==null)return null;
+function killPlayer(){if(yt){try{yt.destroy()}catch(e){}yt=null;ytFor=null}hold=null}
+const ytOK=()=>!!(yt&&typeof yt.seekTo==='function'&&ytFor===view.song);
+function timesOf(id){const a=att(id);return a&&a.times&&a.times.length?a:null}
+function segment(id,i){
+  const a=timesOf(id);
+  if(!a||a.times[i]==null)return null;
   const off=a.offset||0,start=a.times[i]+off;
   let end=a.ends&&a.ends[i]!=null?a.ends[i]+off:null;
   if(end==null&&a.times[i+1]!=null)end=a.times[i+1]+off;
-  if(end==null&&ytOK()){const d=yt.getDuration&&yt.getDuration();if(d)end=d}
+  if(end==null&&yt&&yt.getDuration){const d=yt.getDuration();if(d)end=d}
   if(end==null)end=start+8;
   return end>start?[Math.max(0,start),end]:null;
 }
-const useVideo=(song,i)=>prefs.voice==='video'&&ytOK()&&segment(song.id,i);
+const videoActive=()=>prefs.voice==='video'&&ytOK()&&!!timesOf(view.song);
+function lineAt(t){
+  const a=timesOf(view.song),off=a.offset||0;
+  let i=0;
+  for(let n=0;n<a.times.length;n++){if(a.times[n]!=null&&a.times[n]+off<=t)i=n}
+  return i;
+}
+
+/* The clock: while a timed video is on screen, the lyrics always follow it. */
+let hold=null,guard=null,turnOn=false,clockOn=false;
+function seekLine(i,play){
+  const s=segment(view.song,i);if(!s)return;
+  guard={t:s[0],until:performance.now()+1500};
+  yt.seekTo(s[0],true);
+  if(play){yt.setPlaybackRate(prefs.speed);yt.playVideo()}
+}
+function clock(){
+  requestAnimationFrame(clock);
+  if(marking||!$('#lyrics')||!videoActive())return;
+  let t,state;
+  try{t=yt.getCurrentTime()||0;state=yt.getPlayerState()}catch(e){return}
+  if(guard){
+    if(Math.abs(t-guard.t)<1.5||performance.now()>guard.until)guard=null;
+    else return;
+  }
+  setPlayBtn(state===1||turnOn);
+  if(hold){
+    const s=segment(view.song,hold.i);
+    if(!hold.busy&&s){
+      if(t<s[0]-1||t>s[1]+1)hold=null; // the viewer scrubbed away: stop holding this line
+      else if(state===1&&t>=s[1]-.05){holdEnd();return}
+    }
+  }
+  const i=hold?hold.i:lineAt(t);
+  if(i!==view.line){view.line=i;markActive()}
+  const s=segment(view.song,view.line);
+  if(s)fill((t-s[0])/(s[1]-s[0]));
+}
+async function holdEnd(){
+  const h=hold,song=getSong(view.song),seg=segment(song.id,h.i);
+  if(prefs.shadow){
+    h.busy=true;yt.pauseVideo();
+    const id=++run;turnOn=true;
+    await yourTurn((seg[1]-seg[0])/prefs.speed,id);
+    if(id!==run)return;
+    turnOn=false;h.busy=false;
+  }
+  if(prefs.mode==='loop'){seekLine(h.i,true);return}
+  if(prefs.mode==='song'&&h.i<song.lines.length-1){h.i++;view.line=h.i;markActive();seekLine(h.i,true);return}
+  hold=null;yt.pauseVideo();
+}
+function cancelTurn(){
+  if(!turnOn)return;
+  run++;turnOn=false;
+  const l=$('#turnlabel'),b=$('#turnbar');if(l)l.textContent='';if(b)b.style.width='0';
+  if(hold)hold.busy=false;
+}
+function jump(i){
+  const s=getSong(view.song);
+  i=Math.max(0,Math.min(s.lines.length-1,i));
+  if(videoActive()){
+    const playing=yt.getPlayerState()===1||turnOn;
+    cancelTurn();
+    if(hold)hold.i=i;
+    view.line=i;markActive();
+    seekLine(i,playing);
+    return;
+  }
+  stopAll();view.line=i;markActive();
+}
 
 /* Speech and playback */
 let run=0,raf=0;
@@ -526,16 +644,16 @@ function speakOnce(text,rate=.8){
   stopAll();tts(text,rate);
 }
 function stopAll(){
-  run++;cancelAnimationFrame(raf);
+  run++;cancelAnimationFrame(raf);hold=null;turnOn=false;
   if(window.speechSynthesis)speechSynthesis.cancel();
   if(ytOK()&&yt.pauseVideo)try{yt.pauseVideo()}catch(e){}
   releaseWake();setPlayBtn(false);
   const t=$('#turnlabel');if(t)t.textContent='';
   const b=$('#turnbar');if(b)b.style.width='0';
 }
-function setPlayBtn(on){const b=$('#play');if(b){b.textContent=on?'Stop':'Play';b.dataset.on=on?'1':''}}
+function setPlayBtn(on){const b=$('#play');if(b&&(b.dataset.on==='1')!==on){b.textContent=on?'Stop':'Play';b.dataset.on=on?'1':''}}
 function fill(k){
-  const sy=[...document.querySelectorAll('#now .sy')],n=Math.ceil(Math.max(0,Math.min(1,k))*sy.length);
+  const sy=[...document.querySelectorAll('#lyrics .line.active .sy')],n=Math.ceil(Math.max(0,Math.min(1,k))*sy.length);
   sy.forEach((s,i)=>s.classList.toggle('on',i<n));
 }
 function wipeOver(dur,id){
@@ -543,42 +661,7 @@ function wipeOver(dur,id){
   const step=t=>{if(id!==run)return;const k=(t-start)/(dur*1000);fill(k);if(k<1)raf=requestAnimationFrame(step)};
   raf=requestAnimationFrame(step);
 }
-function videoLine(song,i,id){
-  const seg=segment(song.id,i);
-  return new Promise(res=>{
-    yt.setPlaybackRate(prefs.speed);yt.seekTo(seg[0],true);yt.playVideo();fill(0);
-    const step=()=>{
-      if(id!==run){res(0);return}
-      const t=yt.getCurrentTime()||0;
-      fill((t-seg[0])/(seg[1]-seg[0]));
-      if(t>=seg[1]-.05||yt.getPlayerState()===0){yt.pauseVideo();res((seg[1]-seg[0])/prefs.speed);return}
-      raf=requestAnimationFrame(step);
-    };
-    raf=requestAnimationFrame(step);
-  });
-}
-function followSong(song,id){
-  // Whole song on the video: keep playing and let the lyrics follow the clock.
-  const a=att(song.id),off=a.offset||0;
-  return new Promise(res=>{
-    const seg=segment(song.id,view.line);
-    yt.setPlaybackRate(prefs.speed);yt.seekTo(seg[0],true);yt.playVideo();
-    const step=()=>{
-      if(id!==run){res();return}
-      const t=yt.getCurrentTime()||0;
-      let i=view.line;
-      while(a.times[i+1]!=null&&t>=a.times[i+1]+off)i++;
-      if(i!==view.line){view.line=i;stage()}
-      const s=segment(song.id,i);
-      if(s)fill((t-s[0])/(s[1]-s[0]));
-      if(yt.getPlayerState()===0||(i===song.lines.length-1&&s&&t>=s[1])){res();return}
-      raf=requestAnimationFrame(step);
-    };
-    raf=requestAnimationFrame(step);
-  });
-}
 function sayLine(song,i,id){
-  if(useVideo(song,i))return videoLine(song,i,id);
   const ko=song.lines[i].ko,rate=prefs.speed;
   const est=[...ko.replace(/\s/g,'')].length*.2/rate+.3;
   const t0=performance.now();
@@ -607,28 +690,54 @@ function holdWake(){try{navigator.wakeLock&&navigator.wakeLock.request('screen')
 function releaseWake(){try{wake&&wake.release()}catch(e){}wake=null}
 async function playSeq(){
   const song=getSong(view.song),a=att(song.id);
-  if(prefs.voice==='video'&&a&&a.yt&&!useVideo(song,view.line)){
-    toast(ytOK()?'Mark the lines first so the video can follow them. Using the computer voice for now.':'The video is still loading. Using the computer voice for now.');
-  }else if(!useVideo(song,view.line)&&koVoice()===null)toast('This device has no Korean voice. Add one in your system language settings, or attach a video.');
-  const id=++run;setPlayBtn(true);
   if(prefs.mode!=='one')holdWake();
-  if(prefs.mode==='song'&&!prefs.shadow&&useVideo(song,view.line)){await followSong(song,id);if(id===run){setPlayBtn(false);releaseWake()}return}
+  if(videoActive()){
+    hold=(prefs.mode==='song'&&!prefs.shadow)?null:{i:view.line};
+    seekLine(view.line,true);
+    return;
+  }
+  if(prefs.voice==='video'&&a&&a.yt)toast(ytOK()?'Mark the lines first so the video can follow them. Using the computer voice for now.':'The video is still loading. Using the computer voice for now.');
+  else if(koVoice()===null)toast('This device has no Korean voice. Add one in your system language settings, or attach a video.');
+  const id=++run;setPlayBtn(true);
   for(;;){
     const dur=await sayLine(song,view.line,id);
     if(id!==run)return;
     if(prefs.shadow){await yourTurn(dur,id);if(id!==run)return}
     if(prefs.mode==='loop')continue;
-    if(prefs.mode==='song'&&view.line<song.lines.length-1){view.line++;stage();continue}
+    if(prefs.mode==='song'&&view.line<song.lines.length-1){view.line++;markActive();continue}
     break;
   }
   setPlayBtn(false);releaseWake();
 }
 
+/* Hear the singer in Review */
+let clip=null;
+function clipFor(c){
+  const a=att(c.song);
+  if(!a||!a.yt||!a.times)return null;
+  const song=getSong(c.song);if(!song)return null;
+  const i=song.lines.findIndex(l=>l.ko===c.line);
+  if(i<0||a.times[i]==null)return null;
+  const off=a.offset||0,start=a.times[i]+off;
+  const end=(a.ends&&a.ends[i]!=null?a.ends[i]:a.times[i+1]!=null?a.times[i+1]:a.times[i]+8)+off;
+  return{videoId:a.yt,start:Math.max(0,start),end};
+}
+function playClip(c){
+  $('#clipdock').hidden=false;
+  if(!ytReady){pendingClip=c;loadYT();return}
+  if(clip&&clip.loadVideoById){clip.loadVideoById({videoId:c.videoId,startSeconds:c.start,endSeconds:c.end});return}
+  if(clip)return;
+  clip=new YT.Player('cliphost',{videoId:c.videoId,playerVars:{playsinline:1,rel:0,autoplay:1,start:Math.floor(c.start),end:Math.ceil(c.end),origin:location.origin},
+    events:{onError:()=>toast('YouTube could not play this clip.')}});
+}
+function hideClip(){$('#clipdock').hidden=true;try{clip&&clip.pauseVideo&&clip.pauseVideo()}catch(e){}}
+
 /* Toast and sheet */
 let toastT;
 function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,4500)}
 function openSheet(html){$('#sheet').innerHTML='<div class="in">'+html+'</div>';$('#sheet').hidden=false;$('#veil').hidden=false}
-function closeSheet(){$('#sheet').hidden=true;$('#veil').hidden=true}
+function closeSheet(){$('#sheet').hidden=true;$('#veil').hidden=true;if(wordPause){wordPause=false;if(ytOK())yt.playVideo()}}
+let wordPause=false;
 
 /* Deck */
 const cardKey=(song,base)=>song+'|'+base;
@@ -664,7 +773,13 @@ function chrome(){
   $('#bar').innerHTML=[['home','Songs'],['review','Review'],['find','Find']].map(([v,l])=>
     `<button data-nav="${v}" aria-current="${view.v===v||(v==='home'&&view.v==='song')||(v==='find'&&view.v==='setup')}">${l}${v==='review'&&n?`<span class="badge">${n}</span>`:''}</button>`).join('');
 }
-function render(){chrome();({home,song:songView,review,find,setup,settings})[view.v]()}
+function render(){
+  chrome();
+  if(view.v!=='song')killPlayer();
+  if(view.v!=='review')hideClip();
+  $('#app').classList.toggle('singmode',view.v==='song'&&view.tab==='sing');
+  ({home,song:songView,review,find,setup,settings})[view.v]();
+}
 function home(){
   const hero='아리랑 고개로 넘어간다';let n=0;
   const k=[...hero].map(c=>c===' '?' ':`<span class="sy" style="--n:${n++}">${c}</span>`).join('');
@@ -679,69 +794,86 @@ function songView(){
   const s=getSong(view.song);
   if(!s){view.v='home';return render()}
   const mine=!BUILT.some(b=>b.id===s.id);
+  $('#app').classList.toggle('singmode',view.tab==='sing');
+  if(view.tab!=='sing')killPlayer();
   $('#app').innerHTML=`
-  <header class="top"><div><button class="link" data-nav="home">← Songs</button><h1>${esc(s.title)}</h1><p class="muted">${esc([s.en,s.by].filter(Boolean).join(' · '))}</p>${s.note?`<p class="muted">${esc(s.note)}</p>`:''}</div></header>
-  <div class="tabs" role="tablist">${[['sing','Sing'],['words','Words'],['gap','Gap fill']].map(([t,l])=>`<button role="tab" aria-selected="${view.tab===t}" data-tab="${t}">${l}</button>`).join('')}</div>
+  <header class="songhead"><div class="ti"><button class="link" data-nav="home" style="text-align:left">← Songs</button><h1>${esc(s.title)}</h1><p class="muted">${esc([s.en,s.by].filter(Boolean).join(' · '))}</p></div>
+  <div class="tabs" role="tablist">${[['sing','Sing'],['words','Words'],['gap','Gap fill']].map(([t,l])=>`<button role="tab" aria-selected="${view.tab===t}" data-tab="${t}">${l}</button>`).join('')}</div></header>
   <div id="body"></div>
-  ${mine?`<div class="block"><div class="row" id="delrow"><button class="btn" data-del="ask">Delete this song</button></div></div>`:''}`;
+  ${mine&&view.tab!=='sing'?`<div class="block"><div class="row" id="delrow"><button class="btn" data-del="ask">Delete this song</button></div></div>`:''}`;
   ({sing:singTab,words:wordsTab,gap:gapTab})[view.tab](s);
 }
 function singTab(s){
   killPlayer();
-  const a=att(s.id),marked=a&&a.times&&a.times.length;
-  $('#body').innerHTML=`<div style="display:flex;flex-direction:column;gap:14px">
-  ${a&&a.yt?`<div class="video"><div id="ythost"></div></div>`:''}
-  <div class="stage" id="stage"></div>
-  <div class="ctrl">
+  const a=att(s.id),timed=!!timesOf(s.id);
+  const anyTr=s.lines.some(l=>l.en);
+  $('#body').innerHTML=`<div class="sing">
+  <div class="side">
+    ${a&&a.yt?`<div class="video"><div id="ythost"></div></div>`:''}
     <div class="play"><button class="btn" data-step="-1" aria-label="Previous line">Back</button><button class="btn primary" id="play">Play</button><button class="btn" data-step="1" aria-label="Next line">Next</button></div>
-    <div class="row">
+    <div class="pills">
+      ${a&&a.yt?`<label class="opt">Voice <select id="voice">${[['video','video'],['tts','computer']].map(([v,l])=>`<option value="${v}"${prefs.voice===v?' selected':''}>${l}</option>`).join('')}</select></label>`:''}
+      ${timed?`<div class="delay" aria-label="Lyric delay">Delay <span id="offset">${fmtOff(a.offset)}</span><button data-nudge="-0.25" aria-label="Show lyrics earlier">−</button><button data-nudge="0.25" aria-label="Show lyrics later">+</button></div>`:''}
+      <label class="opt">Speed <select id="speed">${[.5,.75,1].map(v=>`<option value="${v}"${prefs.speed==v?' selected':''}>${Math.round(v*100)}%</option>`).join('')}</select></label>
+      <label class="opt">Play <select id="mode">${[['one','one line'],['loop','loop line'],['song','whole song']].map(([v,l])=>`<option value="${v}"${prefs.mode===v?' selected':''}>${l}</option>`).join('')}</select></label>
+      <button class="btn" data-pref="meaning" aria-pressed="${prefs.meaning&&anyTr}">Translation</button>
       <button class="btn" data-pref="sounds" aria-pressed="${prefs.sounds}">Sounds</button>
-      <button class="btn" data-pref="meaning" aria-pressed="${prefs.meaning}">Meaning</button>
       <button class="btn" data-pref="shadow" aria-pressed="${prefs.shadow}">Repeat after</button>
-      <label class="muted row" style="gap:6px">Speed <select id="speed">${[.5,.75,1].map(v=>`<option value="${v}"${prefs.speed==v?' selected':''}>${Math.round(v*100)}%</option>`).join('')}</select></label>
-      <label class="muted row" style="gap:6px">Play <select id="mode">${[['one','one line'],['loop','loop line'],['song','whole song']].map(([v,l])=>`<option value="${v}"${prefs.mode===v?' selected':''}>${l}</option>`).join('')}</select></label>
-      ${a&&a.yt?`<label class="muted row" style="gap:6px">Voice <select id="voice">${[['video','video'],['tts','computer']].map(([v,l])=>`<option value="${v}"${prefs.voice===v?' selected':''}>${l}</option>`).join('')}</select></label>`:''}
+      <button class="btn" data-videosheet="1">Video</button>
     </div>
+    <div class="turnwrap" id="turnwrap"${prefs.shadow?'':' hidden'}><div class="turn" aria-hidden="true"><i id="turnbar"></i></div><span id="turnlabel"></span></div>
   </div>
-  <section class="sheetlist" id="list" aria-label="All lines"></section>
-  <section class="block"><h2>Video</h2>
-    ${a&&a.yt?`<p class="muted" id="timing">${marked?'Lines are timed to this video.':'Tap Mark lines while the video plays to time each line.'}</p>
-      <div class="row"><button class="btn" id="mark">Mark lines</button><button class="btn" data-att="remove">Remove video</button></div>
-      ${marked?`<div class="row"><span class="muted">Lyrics off?</span><button class="btn" data-nudge="-0.25">Earlier</button><span class="muted" id="offset" style="font-variant-numeric:tabular-nums">${(a.offset||0).toFixed(2)}s</span><button class="btn" data-nudge="0.25">Later</button></div>`:''}`
-    :`<p class="muted">Paste a YouTube link to sing along with a real recording.</p>
-      <div class="row"><input id="attlink" type="text" aria-label="YouTube link" placeholder="youtube.com/watch?v=…" style="flex:1;min-width:0"><button class="btn" data-att="add">Attach</button></div>`}
-  </section></div>`;
-  stage();mountPlayer();
+  <section class="lyrics${prefs.meaning?'':' notr'}" id="lyrics" aria-label="Lyrics"></section>
+  </div>`;
+  buildLyrics(s);markActive(true);mountPlayer();
+  if(!clockOn){clockOn=true;requestAnimationFrame(clock)}
 }
-function stage(){
-  const s=getSong(view.song),i=view.line,l=s.lines[i],el=$('#stage');
-  if(!el)return;
-  const a=analyze(l.ko);
-  let wi=0,open=false,h='';
-  a.forEach(c=>{
-    if(c.o===' '){if(open){h+='</button>';open=false;wi++}h+=' ';return}
-    if(!open){h+=`<button class="w" data-w="${wi}">`;open=true}
-    h+=`<span class="sy">${esc(c.o)}</span>`;
-  });
-  if(open)h+='</button>';
-  const next=s.lines[i+1];
-  let say='';
+const fmtOff=o=>((o||0)>0?'+':'')+(o||0).toFixed(2)+'s';
+function buildLyrics(s){
+  const box=$('#lyrics');
+  box.innerHTML=s.lines.map((l,n)=>{
+    let wi=0,open=false,h='';
+    [...l.ko].forEach(c=>{
+      if(/\s/.test(c)){if(open){h+='</button>';open=false;wi++}h+=' ';return}
+      if(!open){h+=`<button class="w" data-w="${wi}" tabindex="-1">`;open=true}
+      h+=`<span class="sy">${esc(c)}</span>`;
+    });
+    if(open)h+='</button>';
+    return `<div class="line" data-i="${n}"><div class="kr" lang="ko">${h}</div><div class="tr">${esc(l.en||'')}</div></div>`;
+  }).join('');
+  box.onwheel=box.ontouchmove=()=>{lastScroll=performance.now()};
+}
+let lastScroll=-1e9;
+function markActive(instant){
+  const box=$('#lyrics');if(!box)return;
+  const s=getSong(view.song),i=view.line;
+  box.querySelectorAll('.line.active').forEach(e=>{e.classList.remove('active');e.querySelectorAll('.sy.on').forEach(x=>x.classList.remove('on'));const d=e.querySelector('.detail');if(d)d.remove()});
+  const el=box.querySelector(`.line[data-i="${i}"]`);if(!el)return;
+  el.classList.add('active');
   if(prefs.sounds){
-    const tags=[...new Set(a.flatMap(c=>c.tags))];
-    say+=`<div class="say"><div class="surf" lang="ko">${a.map(c=>c.changed?`<b>${esc(c.s)}</b>`:esc(c.s)).join('')}</div><div class="rom">${esc(roman(l.ko))}</div>
-    ${tags.length?`<div class="rules">${tags.map(t=>`<div><b>${RULES[t][0]}.</b> ${RULES[t][1]}</div>`).join('')}</div>`:''}</div>`;
+    const a=analyze(s.lines[i].ko),tags=[...new Set(a.flatMap(c=>c.tags))];
+    const d=document.createElement('div');d.className='detail';
+    d.innerHTML=`<div class="surf" lang="ko">${a.map(c=>c.changed?`<b>${esc(c.s)}</b>`:esc(c.s)).join('')}</div><div class="rom">${esc(roman(s.lines[i].ko))}</div>
+    ${tags.length?`<div class="rules">${tags.map(t=>`<div><b>${RULES[t][0]}.</b> ${RULES[t][1]}</div>`).join('')}</div>`:''}`;
+    el.append(d);
   }
-  if(prefs.meaning)say+=`<div class="en">${l.en?esc(l.en):'<span class="muted">No meaning saved for this line.</span>'}</div>`;
-  el.innerHTML=`<div class="count">Line ${i+1} of ${s.lines.length}</div>
-    <div class="kara now" id="now" lang="ko">${h}</div>
-    ${next?`<div class="next" lang="ko">${esc(next.ko)}</div>`:''}
-    ${prefs.shadow?'<div class="turn" aria-hidden="true"><i id="turnbar"></i></div><div class="turnlabel" id="turnlabel"></div>':''}${say}`;
-  const list=$('#list');
-  if(list)list.innerHTML=s.lines.map((x,n)=>`<button data-line="${n}" aria-current="${n===i}" lang="ko">${esc(x.ko)}</button>`).join('');
+  if(performance.now()-lastScroll<4000)return;
+  const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+  box.scrollTo({top:el.offsetTop-box.clientHeight/2+el.offsetHeight/2,behavior:instant||reduce?'auto':'smooth'});
+}
+function videoSheet(){
+  const s=getSong(view.song),a=att(s.id);
+  openSheet(`<h2>Video</h2>
+  ${a&&a.yt?`<p class="muted">${timesOf(s.id)?'Lines are timed to this video. Mark them again if the timing is wrong throughout.':'Tap Mark lines while the video plays to time each line.'}</p>
+   <div class="row"><button class="btn primary" id="mark">Mark lines</button><button class="btn" data-att="remove">Remove video</button><button class="btn" data-close="1">Close</button></div>`
+  :`<p class="muted">Paste a YouTube link to sing along with a real recording.</p>
+   <div class="row"><input id="attlink" type="text" aria-label="YouTube link" placeholder="youtube.com/watch?v=…" style="flex:1;min-width:0"><button class="btn primary" data-att="add">Attach</button><button class="btn" data-close="1">Close</button></div>`}`);
 }
 function wordSheet(li,wi){
   const s=getSong(view.song),l=s.lines[li],w=words(l)[wi],g=(l.g&&l.g[wi])||['',''];
   const inDeck=has(s,li,wi);
+  if(ytOK()&&prefs.voice==='video'&&yt.getPlayerState()===1){wordPause=true;yt.pauseVideo()}
+  else if(!ytOK()||prefs.voice!=='video')stopAll();
   openSheet(`<h2 lang="ko">${esc(w)}</h2>
    ${g[1]?`<p><b lang="ko">${esc(g[0])}</b> ${esc(g[1])}</p>`:`<label class="field">Meaning<input id="glossin" type="text" placeholder="Type what this word means"></label>`}
    <p lang="ko"><b style="color:var(--hot)">[${esc(spoken(w))}]</b> <span class="muted">${esc(roman(w))}</span></p>
@@ -760,7 +892,7 @@ function wordsTab(s){
   const noGloss=!rows.some(r=>r.g[1]);
   $('#body').innerHTML=`<div style="display:flex;flex-direction:column;gap:12px">
    <div class="row"><span class="muted">${rows.length} words, ${rows.length-left} in Review</span><button class="btn" data-addall="1"${left?'':' disabled'}>Add all</button>
-   ${noGloss?`<button class="btn primary" data-gloss="1">Get meanings from Claude</button>`:''}</div>
+   ${noGloss?`<button class="btn primary" data-gloss="1">Get translation from Claude</button>`:''}</div>
    <div class="wlist">${rows.map(r=>`<div class="wrow"><button data-sheet="${r.li}:${r.wi}"><span class="ko" lang="ko">${esc(r.g[0])}</span><span class="gl">${r.g[1]?esc(r.g[1]):'Tap to add a meaning'}</span></button>
    <button class="add" data-addw="${r.li}:${r.wi}"${has(s,r.li,r.wi)?' disabled':''}>${has(s,r.li,r.wi)?'Added':'Add'}</button></div>`).join('')}</div></div>`;
 }
@@ -773,12 +905,13 @@ ${lines.map((l,i)=>(i+1)+'. '+l).join('\n')}`;
 }
 function glossSheet(s){
   const uniq=[...new Set(s.lines.map(l=>l.ko))];
-  openSheet(`<h2>Get meanings from Claude</h2>
-   <p class="muted">Copy the request, send it to Claude in a chat, then paste the reply here. This uses your normal Claude plan.</p>
-   <textarea id="glossprompt" readonly style="min-height:90px">${esc(glossPrompt(uniq))}</textarea>
-   <div class="row"><button class="btn" data-copyprompt="1">Copy request</button></div>
-   <label class="field">Claude's reply<textarea id="glossreply" style="min-height:110px"></textarea></label>
-   <div class="row"><button class="btn primary" data-glossapply="1">Add meanings</button><button class="btn" data-close="1">Close</button></div>`);
+  openSheet(`<h2>Get the translation from Claude</h2>
+   <p class="muted">1. Open Claude. The request is copied for you, so paste it if the chat is empty. 2. Copy Claude's reply. 3. Come back here and add it. This uses your normal Claude plan.</p>
+   <textarea id="glossprompt" readonly hidden>${esc(glossPrompt(uniq))}</textarea>
+   <div class="row"><button class="btn primary" data-claude="1">Open Claude</button></div>
+   <div class="row"><button class="btn primary" data-glosspaste="1">Add copied reply</button><button class="btn" data-close="1">Close</button></div>
+   <label class="field">Or paste the reply here<textarea id="glossreply" style="min-height:90px"></textarea></label>
+   <div class="row"><button class="btn" data-glossapply="1">Add pasted reply</button></div>`);
 }
 function applyGloss(s,text){
   const a=text.indexOf('['),b=text.lastIndexOf(']');
@@ -840,11 +973,11 @@ function review(){
     return;
   }
   const c=due[0];
-  if(!rv.card||rv.card.key!==c.key)rv={card:c,show:false,sounds:false};
+  if(!rv.card||rv.card.key!==c.key){rv={card:c,show:false,sounds:false};hideClip()}
   const ctx=esc(c.line).replace(esc(c.form),`<mark>${esc(c.form)}</mark>`);
   $('#app').innerHTML=`<header class="top"><h1>Review</h1><span class="muted">${due.length} due</span></header>${stats}
   <div class="card"><div class="big" lang="ko">${esc(c.ko)}</div><p class="ctx" lang="ko">${ctx}</p>
-   <div class="row" style="justify-content:center"><button class="btn" data-speak="${esc(c.ko)}">Hear it</button><button class="btn" data-speak="${esc(c.line)}">Hear the line</button><button class="btn" data-rvsound="1" aria-pressed="${rv.sounds}">Sounds</button></div>
+   <div class="row" style="justify-content:center"><button class="btn" data-speak="${esc(c.ko)}">Hear it</button>${clipFor(c)?'<button class="btn primary" data-clip="1">Hear the singer</button>':''}<button class="btn" data-speak="${esc(c.line)}">Computer voice</button><button class="btn" data-rvsound="1" aria-pressed="${rv.sounds}">Sounds</button></div>
    ${rv.sounds?`<p lang="ko"><b style="color:var(--hot)">[${esc(spoken(c.form))}]</b> <span class="muted">${esc(roman(c.form))}</span></p>`:''}
    ${rv.show?`<p style="font-size:19px">${c.en?esc(c.en):'<span class="muted">No meaning saved.</span>'}</p><p class="muted">from ${esc(c.title)}</p>`:''}</div>
   ${rv.show?`<div class="rate">${['Again','Hard','Good','Easy'].map((l,q)=>`<button data-rate="${q}">${l}<small>${ivl(c,q)}</small></button>`).join('')}</div>`:
@@ -932,13 +1065,33 @@ async function useLink(text){
 }
 
 /* Settings */
+const FONTS=[
+ {id:'noto',name:'Noto Serif KR',css:'"Noto Serif KR",serif',w:700},
+ {id:'gowun',name:'Gowun Batang',css:'"Gowun Batang",serif',w:700},
+ {id:'dohyeon',name:'Do Hyeon',css:'"Do Hyeon",sans-serif',w:400},
+ {id:'jua',name:'Jua',css:'"Jua",sans-serif',w:400},
+ {id:'pen',name:'Nanum Pen Script',css:'"Nanum Pen Script",cursive',w:400}
+];
+function applyFont(){
+  const f=FONTS.find(x=>x.id===prefs.font)||FONTS[0],r=document.documentElement.style;
+  r.setProperty('--lyric',f.css);r.setProperty('--lyric-w',f.w);
+}
 function settings(){
   $('#app').innerHTML=`<header class="top"><div><button class="link" data-nav="home">← Songs</button><h1>Settings</h1></div></header>
   ${CLIENT_ID?'':`<label class="field">Google client ID<input id="cid" type="text" value="${esc(prefs.clientId)}" autocomplete="off"></label>
   <p class="muted">Page address for Google setup: ${esc(location.origin)}</p>`}
   <div class="row"><button class="btn primary" id="connect">${live()?'Connected':'Connect YouTube'}</button>${prefs.connected?'<button class="btn" id="signout">Disconnect</button>':''}</div>
   <p class="muted" id="syncnote">${syncText()}</p>
-  <label class="field">Daily goal<input id="goal" type="text" inputmode="numeric" value="${P.goal}"></label>`;
+  <label class="field">Daily goal<input id="goal" type="text" inputmode="numeric" value="${P.goal}"></label>
+  <section class="block"><h2>Lyric font</h2><div class="fonts">${FONTS.map(f=>`<button data-font="${esc(f.id)}" aria-pressed="${prefs.font===f.id}"><span class="sample" lang="ko" style="font-family:${esc(f.css)};font-weight:${f.w}">아리랑 고개로 넘어간다</span><span class="muted">${esc(f.name)}</span></button>`).join('')}</div></section>
+  <section class="block"><h2>Keyboard shortcuts</h2><div class="keys"><kbd>Space</kbd><span>Play or stop; show the meaning in Review</span><kbd>← →</kbd><span>Previous or next line</span><kbd>1 2 3 4</kbd><span>Again, Hard, Good, Easy in Review</span><kbd>Esc</kbd><span>Close a panel</span></div></section>`;
+}
+
+function finishGloss(s){
+  if(custom[s.id])saveSong(s);
+  closeSheet();prefs.meaning=true;saveLocal();
+  if(view.tab==='words')wordsTab(s);else singTab(s);
+  toast('Translation added.');
 }
 
 /* Marking lines against the video */
@@ -965,6 +1118,12 @@ document.addEventListener('submit',e=>{
 });
 document.addEventListener('click',async e=>{
   if(e.target.id==='veil'){closeSheet();return}
+  const ln=e.target.closest('.line');
+  if(ln){
+    const i=+ln.dataset.i,w=e.target.closest('.w');
+    if(i===view.line&&w)wordSheet(i,+w.dataset.w);else jump(i);
+    return;
+  }
   const t=e.target.closest('button');
   if(!t)return;
   const d=t.dataset;
@@ -972,10 +1131,17 @@ document.addEventListener('click',async e=>{
   if(d.open){view={v:'song',song:d.open,tab:'sing',line:0};render();window.scrollTo(0,0);return}
   if(d.tab){stopAll();view.tab=d.tab;songView();return}
   if(t.id==='play'){if(d.on==='1')stopAll();else playSeq();return}
-  if(d.step){stopAll();const s=getSong(view.song);view.line=Math.min(s.lines.length-1,Math.max(0,view.line+ +d.step));stage();return}
-  if(d.line){stopAll();view.line=+d.line;stage();return}
-  if(d.pref){prefs[d.pref]=!prefs[d.pref];t.setAttribute('aria-pressed',prefs[d.pref]);saveLocal();stage();return}
-  if(d.w){wordSheet(view.line,+d.w);return}
+  if(d.step){jump(view.line+ +d.step);return}
+  if(d.pref){
+    if(d.pref==='meaning'&&!getSong(view.song).lines.some(l=>l.en)){glossSheet(getSong(view.song));return}
+    prefs[d.pref]=!prefs[d.pref];t.setAttribute('aria-pressed',prefs[d.pref]);saveLocal();
+    $('#lyrics').classList.toggle('notr',!prefs.meaning);
+    $('#turnwrap').hidden=!prefs.shadow;
+    markActive();return
+  }
+  if(d.videosheet){videoSheet();return}
+  if(d.clip){const c=clipFor(rv.card);if(c)playClip(c);return}
+  if(d.font){prefs.font=d.font;saveLocal();applyFont();settings();return}
   if(d.sheet){const [a,b]=d.sheet.split(':').map(Number);wordSheet(a,b);return}
   if(d.speak){speakOnce(d.speak);return}
   if(d.close){closeSheet();return}
@@ -990,14 +1156,25 @@ document.addEventListener('click',async e=>{
     save();chrome();wordsTab(s);toast(n+' words added to Review.');return
   }
   if(d.gloss){glossSheet(getSong(view.song));return}
-  if(d.copyprompt){
-    const a=$('#glossprompt');
-    try{await navigator.clipboard.writeText(a.value);toast('Copied.')}catch(err){a.select();toast('Select all and copy the request.')}
+  if(d.claude){
+    const p=$('#glossprompt').value,q=encodeURIComponent(p);
+    let copied=true;
+    try{navigator.clipboard.writeText(p).catch(()=>{copied=false;toast('Copying was blocked. Open the Words tab on a computer to copy the request.')})}catch(err){copied=false}
+    window.open('https://claude.ai/new'+(q.length<6000?'?q='+q:''),'_blank','noopener');
+    toast('Request copied. Paste it in Claude if the chat is empty.');
+    return
+  }
+  if(d.glosspaste){
+    const s=getSong(view.song);
+    try{
+      const text=await navigator.clipboard.readText();
+      applyGloss(s,text);finishGloss(s);
+    }catch(err){toast('That didn\'t work. Paste Claude\'s reply in the box below.')}
     return
   }
   if(d.glossapply){
     const s=getSong(view.song);
-    try{applyGloss(s,$('#glossreply').value);if(custom[s.id])saveSong(s);closeSheet();wordsTab(s);toast('Meanings added.')}
+    try{applyGloss(s,$('#glossreply').value);finishGloss(s)}
     catch(err){toast('That reply isn\'t in the expected format. Copy Claude\'s whole reply.')}
     return
   }
@@ -1019,13 +1196,13 @@ document.addEventListener('click',async e=>{
   if(d.att==='add'){
     const id=videoId($('#attlink').value);
     if(!id){toast('That doesn\'t look like a YouTube link.');return}
-    P.att[view.song]={yt:id,offset:0};save();singTab(getSong(view.song));return
+    P.att[view.song]={yt:id,offset:0};save();closeSheet();singTab(getSong(view.song));return
   }
-  if(d.att==='remove'){stopAll();delete P.att[view.song];save();singTab(getSong(view.song));return}
-  if(d.nudge){const a=att(view.song);a.offset=(a.offset||0)+ +d.nudge;save();$('#offset').textContent=a.offset.toFixed(2)+'s';return}
-  if(t.id==='mark'){startMark();return}
+  if(d.att==='remove'){stopAll();delete P.att[view.song];save();closeSheet();singTab(getSong(view.song));return}
+  if(d.nudge){const a=att(view.song);a.offset=(a.offset||0)+ +d.nudge;save();$('#offset').textContent=fmtOff(a.offset);return}
+  if(t.id==='mark'){closeSheet();startMark();return}
   if(d.markhit){
-    const s=getSong(view.song);marking.times[marking.i]=yt.getCurrentTime();view.line=marking.i;stage();marking.i++;
+    const s=getSong(view.song);marking.times[marking.i]=yt.getCurrentTime();view.line=marking.i;markActive();marking.i++;
     if(marking.i>=s.lines.length){
       const a=att(s.id);a.times=marking.times;a.ends=null;a.offset=0;marking=null;$('#markbar').hidden=true;stopAll();save();singTab(s);toast('All lines marked.');
     }else markBar(s);
@@ -1038,17 +1215,29 @@ document.addEventListener('click',async e=>{
 });
 document.addEventListener('change',e=>{
   const id=e.target.id;
-  if(id==='speed'){prefs.speed=+e.target.value;saveLocal()}
+  if(id==='speed'){prefs.speed=+e.target.value;saveLocal();if(ytOK())yt.setPlaybackRate(prefs.speed)}
   if(id==='mode'){prefs.mode=e.target.value;saveLocal()}
   if(id==='voice'){prefs.voice=e.target.value;saveLocal()}
   if(id==='cid'){prefs.clientId=e.target.value.trim();saveLocal()}
   if(id==='goal'){const n=parseInt(e.target.value,10);if(n>0){P.goal=n;save()}}
 });
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#sheet').hidden)closeSheet()});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&!$('#sheet').hidden){closeSheet();return}
+  if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)||!$('#sheet').hidden||e.ctrlKey||e.metaKey||e.altKey)return;
+  if(view.v==='song'&&view.tab==='sing'){
+    if(e.key===' '){e.preventDefault();$('#play').click()}
+    if(e.key==='ArrowLeft'){e.preventDefault();jump(view.line-1)}
+    if(e.key==='ArrowRight'){e.preventDefault();jump(view.line+1)}
+  }
+  if(view.v==='review'){
+    if(e.key===' '){const b=$('[data-reveal]');if(b){e.preventDefault();b.click()}}
+    if('1234'.includes(e.key)){const b=$(`[data-rate="${+e.key-1}"]`);if(b)b.click()}
+  }
+});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&live()&&syncState==='syncing')push().catch(pushFail)});
 if(window.speechSynthesis)speechSynthesis.onvoiceschanged=()=>koVoice();
 
-loadLocal();render();
+loadLocal();applyFont();render();
 
 </script>
 </body>
