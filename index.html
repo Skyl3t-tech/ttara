@@ -170,6 +170,12 @@ button.vid:hover{background:var(--panel)}
 .sheetlist button{display:block;width:100%;padding:10px 12px;text-align:left;border-radius:10px;background:var(--panel);color:var(--dim);overflow-wrap:anywhere}
 .sheetlist button:hover{color:var(--ink)}
 
+/* Translation line-up */
+.alist{display:flex;flex-direction:column;gap:6px}
+.arow{display:grid;grid-template-columns:1fr;gap:6px;padding:10px 12px;background:var(--panel);border-radius:12px;min-width:0}
+.ako{font-family:var(--lyric);overflow-wrap:anywhere}
+.arow .btn{min-height:34px;padding:4px 12px;font-size:13px}
+
 /* Settings */
 .fonts{display:flex;flex-direction:column;gap:6px}
 .fonts button{display:flex;flex-direction:column;gap:2px;padding:10px 14px;border-radius:12px;background:var(--panel);text-align:left}
@@ -778,7 +784,7 @@ function render(){
   if(view.v!=='song')killPlayer();
   if(view.v!=='review')hideClip();
   $('#app').classList.toggle('singmode',view.v==='song'&&view.tab==='sing');
-  ({home,song:songView,review,find,setup,settings})[view.v]();
+  ({home,song:songView,review,find,setup,settings,align})[view.v]();
 }
 function home(){
   const hero='아리랑 고개로 넘어간다';let n=0;
@@ -892,20 +898,22 @@ function wordsTab(s){
   const noGloss=!rows.some(r=>r.g[1]);
   $('#body').innerHTML=`<div style="display:flex;flex-direction:column;gap:12px">
    <div class="row"><span class="muted">${rows.length} words, ${rows.length-left} in Review</span><button class="btn" data-addall="1"${left?'':' disabled'}>Add all</button>
-   ${noGloss?`<button class="btn primary" data-gloss="1">Get translation from Claude</button>`:''}</div>
+   ${custom[s.id]?`<button class="btn" data-align="1">${s.lines.some(l=>l.en)?'Edit translation':'Add translation'}</button>`:''}
+   ${noGloss?`<button class="btn primary" data-gloss="1">Get word meanings from Claude</button>`:''}</div>
    <div class="wlist">${rows.map(r=>`<div class="wrow"><button data-sheet="${r.li}:${r.wi}"><span class="ko" lang="ko">${esc(r.g[0])}</span><span class="gl">${r.g[1]?esc(r.g[1]):'Tap to add a meaning'}</span></button>
    <button class="add" data-addw="${r.li}:${r.wi}"${has(s,r.li,r.wi)?' disabled':''}>${has(s,r.li,r.wi)?'Added':'Add'}</button></div>`).join('')}</div></div>`;
 }
-function glossPrompt(lines){
-  return `I'm a beginner learning Korean and studying this song, which I pasted myself. For each numbered line, give a short plain English meaning of the line, and for each space-separated word in order, give its dictionary form and a short English gloss (add particles or endings briefly, as in "wind; 이 marks the subject").
-Reply with only a JSON array with one object per line, in the same order, of the form {"en": string, "g": [[dictionary form, gloss], ...]}. "g" must have exactly one entry per space-separated word.
+function glossWords(s){return [...new Set(s.lines.flatMap(words).filter(hasKo))]}
+function glossPrompt(list){
+  return `I'm a beginner learning Korean. For each Korean word form below, give its dictionary form and a short English gloss (add particles or endings briefly, as in "wind; 이 marks the subject").
+Reply with only a JSON array of [word form, dictionary form, gloss] entries, one for each word in this list, in the same order.
 
-Lines:
-${lines.map((l,i)=>(i+1)+'. '+l).join('\n')}`;
+Words:
+${list.join('\n')}`;
 }
 function glossSheet(s){
-  const uniq=[...new Set(s.lines.map(l=>l.ko))];
-  openSheet(`<h2>Get the translation from Claude</h2>
+  const uniq=glossWords(s);
+  openSheet(`<h2>Get word meanings from Claude</h2>
    <p class="muted">1. Open Claude. The request is copied for you, so paste it if the chat is empty. 2. Copy Claude's reply. 3. Come back here and add it. This uses your normal Claude plan.</p>
    <textarea id="glossprompt" readonly hidden>${esc(glossPrompt(uniq))}</textarea>
    <div class="row"><button class="btn primary" data-claude="1">Open Claude</button></div>
@@ -917,13 +925,11 @@ function applyGloss(s,text){
   const a=text.indexOf('['),b=text.lastIndexOf(']');
   if(a<0||b<a)throw 0;
   const res=JSON.parse(text.slice(a,b+1));
-  if(!Array.isArray(res))throw 0;
-  const uniq=[...new Set(s.lines.map(l=>l.ko))],map={};
-  uniq.forEach((ko,i)=>{
-    const r=res[i]||{},n=ko.split(/\s+/).filter(Boolean).length;
-    map[ko]={en:typeof r.en==='string'?r.en:'',g:Array.isArray(r.g)&&r.g.length===n?r.g.map(x=>[String(x[0]||''),String(x[1]||'')]):null};
-  });
-  s.lines=s.lines.map(l=>({...l,en:map[l.ko].en,...(map[l.ko].g?{g:map[l.ko].g}:{})}));
+  if(!Array.isArray(res)||!res.length)throw 0;
+  const map={};
+  res.forEach(r=>{if(Array.isArray(r)&&r.length>=3)map[String(r[0]).trim()]=[String(r[1]||''),String(r[2]||'')]});
+  if(!Object.keys(map).length)throw 0;
+  s.lines=s.lines.map(l=>({...l,g:words(l).map(w=>map[w]||[w,''])}));
 }
 
 /* Gap fill */
@@ -1089,10 +1095,40 @@ function settings(){
 
 function finishGloss(s){
   if(custom[s.id])saveSong(s);
-  closeSheet();prefs.meaning=true;saveLocal();
+  closeSheet();
   if(view.tab==='words')wordsTab(s);else singTab(s);
-  toast('Translation added.');
+  toast('Word meanings added.');
 }
+
+/* Translation: paste it from a site, then line it up */
+let al=null;
+function cleanTranslation(text){
+  const rows=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  if(rows[0]&&/lyrics$/i.test(rows[0]))rows.shift();
+  return rows.map(x=>x.replace(/\d*\s*Embed$/,'').trim()).filter(x=>x
+    &&!/^\[.*\]$/.test(x)
+    &&!/^\d+\s*Contributors?\b/i.test(x)
+    &&!/^Translations?$/i.test(x)
+    &&!/^You might also like$/i.test(x));
+}
+function openAlign(s){
+  al={en:s.lines.map(l=>l.en||''),pasted:s.lines.some(l=>l.en)};
+  view.back=view.tab;view.v='align';render();window.scrollTo(0,0);
+}
+function align(){
+  const s=getSong(view.song),q=[s.by,s.title,'english translation'].filter(Boolean).join(' ');
+  const extra=al.en.slice(s.lines.length).filter(Boolean).length;
+  $('#app').innerHTML=`<header class="top"><div><button class="link" data-alignback="1">← ${esc(s.title)}</button><h1>Add a translation</h1></div></header>
+  <p class="muted">Open a page with the translation, copy the text, and paste it here. Section titles like [Chorus] are removed for you.</p>
+  <div class="row"><a class="btn" href="https://genius.com/search?q=${encodeURIComponent(q)}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;display:inline-flex;align-items:center">Find on Genius</a></div>
+  <label class="field">Translation<textarea id="trtext" style="min-height:120px"></textarea></label>
+  <div class="row"><button class="btn primary" data-trparse="1">Line it up</button></div>
+  ${al.pasted?`<section class="block"><h2>Check the lines</h2>
+   <p class="muted">${s.lines.length} Korean lines. ${extra?`${extra} translation line${extra>1?'s':''} left over at the end. `:''}Use Join to merge a split line, or Gap when a Korean line has no match, such as a repeat.</p>
+   <div class="alist">${s.lines.map((l,i)=>`<div class="arow"><div class="ako" lang="ko">${esc(l.ko)}</div><input id="tr${i}" type="text" aria-label="Translation of line ${i+1}" value="${esc(al.en[i]||'')}"><div class="row"><button class="btn" data-trjoin="${i}">Join</button><button class="btn" data-trgap="${i}">Gap</button></div></div>`).join('')}</div>
+   <div class="row"><button class="btn primary" data-trsave="1">Save translation</button></div></section>`:''}`;
+}
+function readRows(){al.en=al.en.map((x,i)=>{const e=$('#tr'+i);return e?e.value:x})}
 
 /* Marking lines against the video */
 let marking=null;
@@ -1133,13 +1169,31 @@ document.addEventListener('click',async e=>{
   if(t.id==='play'){if(d.on==='1')stopAll();else playSeq();return}
   if(d.step){jump(view.line+ +d.step);return}
   if(d.pref){
-    if(d.pref==='meaning'&&!getSong(view.song).lines.some(l=>l.en)){glossSheet(getSong(view.song));return}
+    if(d.pref==='meaning'&&!getSong(view.song).lines.some(l=>l.en)){openAlign(getSong(view.song));return}
     prefs[d.pref]=!prefs[d.pref];t.setAttribute('aria-pressed',prefs[d.pref]);saveLocal();
     $('#lyrics').classList.toggle('notr',!prefs.meaning);
     $('#turnwrap').hidden=!prefs.shadow;
     markActive();return
   }
   if(d.videosheet){videoSheet();return}
+  if(d.align){openAlign(getSong(view.song));return}
+  if(d.alignback){view.v='song';render();return}
+  if(d.trparse){
+    const rows=cleanTranslation($('#trtext').value);
+    if(!rows.length){toast('Paste the translation first.');return}
+    al={en:rows,pasted:true};align();return
+  }
+  if(d.trjoin){
+    readRows();const i=+d.trjoin;
+    if(i+1<al.en.length){al.en[i]=[al.en[i],al.en[i+1]].filter(Boolean).join(' ');al.en.splice(i+1,1);align()}
+    return
+  }
+  if(d.trgap){readRows();al.en.splice(+d.trgap,0,'');align();return}
+  if(d.trsave){
+    readRows();const s=getSong(view.song);
+    s.lines=s.lines.map((l,i)=>({...l,en:(al.en[i]||'').trim()}));
+    saveSong(s);prefs.meaning=true;saveLocal();view.tab=view.back||'sing';view.v='song';render();toast('Translation saved.');return
+  }
   if(d.clip){const c=clipFor(rv.card);if(c)playClip(c);return}
   if(d.font){prefs.font=d.font;saveLocal();applyFont();settings();return}
   if(d.sheet){const [a,b]=d.sheet.split(':').map(Number);wordSheet(a,b);return}
